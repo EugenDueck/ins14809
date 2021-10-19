@@ -46,8 +46,6 @@ class Ins14809Test {
 
         List<String> leftStreamLog = new ArrayList<>();
         List<String> rightStreamLog = new ArrayList<>();
-        List<String> rekeyedLeftStreamLog = new ArrayList<>();
-        List<String> rekeyedRightStreamLog = new ArrayList<>();
         Map<String, List<String>> results = new ConcurrentHashMap<>();
 
         // Run a real kafka broker in a docker container during the test.
@@ -74,15 +72,6 @@ class Ins14809Test {
             leftStream.peek((key, value) -> leftStreamLog.add(value));
             rightStream.peek((key, value) -> rightStreamLog.add(value));
 
-            final KStream<String, String> rekeyedLeftStream = leftStream
-                    .selectKey((k, v) -> v.substring(0, v.indexOf(":")));
-
-            final KStream<String, String> rekeyedRightStream = rightStream
-                    .selectKey((k, v) -> v.substring(0, v.indexOf(":")));
-
-            rekeyedLeftStream.peek((key, value) -> rekeyedLeftStreamLog.add(key + " " + value));
-            rekeyedRightStream.peek((key, value) -> rekeyedRightStreamLog.add(key + " " + value));
-
             JoinWindows joinWindow = JoinWindows.of(Duration.ofSeconds(5));
 
             // A big grace setting will 'fix' the output, but as I understand it having a very large
@@ -91,8 +80,8 @@ class Ins14809Test {
 
             // joinWindow = joinWindow.grace(Duration.ofDays(365));
 
-            final KStream<String, String> joined = rekeyedLeftStream.leftJoin(
-                    rekeyedRightStream,
+            final KStream<String, String> joined = leftStream.leftJoin(
+                    rightStream,
                     (left, right) -> left + "/" + right,
                     joinWindow
             );
@@ -120,8 +109,6 @@ class Ins14809Test {
         System.out.println();
         System.out.println("leftStream: " + leftStreamLog);
         System.out.println("rightStream: " + rightStreamLog);
-        System.out.println("rekeyedLeftStreamLog: " + rekeyedLeftStreamLog);
-        System.out.println("rekeyedRightStreamLog: " + rekeyedRightStreamLog);
 
         System.out.println();
         System.out.println("# Actual results");
@@ -156,9 +143,9 @@ class Ins14809Test {
         ))) {
 
             Long offsetBetweenEvents = Duration.ofHours(1).toMillis();
-            for (int i = 0; i < 1000; i++) {
-                producer.send(new ProducerRecord<>(leftTopic, null, i * offsetBetweenEvents, null, i + ":left"));
-                producer.send(new ProducerRecord<>(rightTopic, null, i * offsetBetweenEvents, null, i + ":right"));
+            for (int i = 0; i < 10; i++) {
+                producer.send(new ProducerRecord<>(leftTopic, null, i * offsetBetweenEvents, i + "", i + ":left"));
+                producer.send(new ProducerRecord<>(rightTopic, null, i * offsetBetweenEvents, i + "", i + ":right"));
                 producer.flush();
             }
 
