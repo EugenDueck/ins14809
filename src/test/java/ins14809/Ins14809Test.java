@@ -143,7 +143,7 @@ class Ins14809Test {
         ))) {
 
             Long offsetBetweenEvents = Duration.ofHours(1).toMillis();
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 1000; i++) {
                 producer.send(new ProducerRecord<>(leftTopic, null, i * offsetBetweenEvents, i + "", i + ":left"));
                 producer.send(new ProducerRecord<>(rightTopic, null, i * offsetBetweenEvents, i + "", i + ":right"));
                 producer.flush();
